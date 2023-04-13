@@ -9,10 +9,10 @@
   },
   "api": {
     "type": "openapi",
-    "url": "https://surfer.ruvnet.repl.co/.well-known/openapi.yaml",
+    "url": "http://localhost:8084/.well-known/openapi.yaml",
     "is_user_authenticated": false
   },
-  "logo_url": "https://surfer.ruvnet.repl.co/.well-known/logo.jpg",
-  "contact_email": "ruv@ruv.net",
-  "legal_info_url": "https://surfer.ruvnet.repl.co/legal"
+  "logo_url": "http://localhost:8084/.well-known/logo.jpg",
+  "contact_email": "admin@localhost",
+  "legal_info_url": "http://localhost:8084/legal"
 }

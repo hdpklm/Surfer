@@ -17,6 +17,9 @@ import asyncio          # Library for asynchronous programming
 import httpx            # Library for making asynchronous HTTP requests
 from fastapi.responses import FileResponse  # File response class for FastAPI
 import mimetypes        # Library for determining the MIME type of a file
+from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+load_dotenv()
 
 # Define an asynchronous function to fetch the HTML content of a URL
 async def fetch_html(url: str) -> str:
@@ -25,7 +28,20 @@ async def fetch_html(url: str) -> str:
 
 # Create a FastAPI application instance
 app = FastAPI()
+origins = [
+    "https://chat.openai.com/",
+    "http://localhost",
+    "http://localhost:8084",
+    "*"
+]
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 # Create a Jinja2Templates instance for rendering HTML templates
 templates = Jinja2Templates(directory="templates")
 
@@ -84,33 +100,38 @@ async def generate_summary_chunk(chunk):
     ]
     
     # Use an asynchronous HTTP client to make a POST request to the OpenAI API
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            "https://api.openai.com/v1/chat/completions",  # API endpoint
-            json={
-                "model": "gpt-3.5-turbo-0301",  # Model name
-                "messages": messages,  # Conversation messages
-                "max_tokens": 100,  # Maximum number of tokens in the response
-                "temperature": 0.9,  # Sampling temperature
-                "n": 1,  # Number of completions to generate
-                "stream": False,  # Streaming mode
-                "stop": None,  # Stop sequence
+    summary = "-----------------"
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://api.openai.com/v1/chat/completions",  # API endpoint
+                json={
+                    "model": "gpt-3.5-turbo-0301",  # Model name
+                    "messages": messages,  # Conversation messages
+                    "max_tokens": 100,  # Maximum number of tokens in the response
+                    "temperature": 0.9,  # Sampling temperature
+                    "n": 1,  # Number of completions to generate
+                    "stream": False,  # Streaming mode
+                    "stop": None,  # Stop sequence
+                },
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {openai.api_key}",  # API key for authorization
             },
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {openai.api_key}",  # API key for authorization
-        },
-    )
+        )
 
-    response_data = response.json()
-    summary = response_data['choices'][0]['message']['content'].strip()
+        response_data = response.json()
+        summary = response_data['choices'][0]['message']['content'].strip()
+    except Exception as e:
+        print(e)
+
     return summary  # Return the summary text
 
 # Define an asynchronous function to generate a summary of an entire article
 async def generate_summary(url):
     url_content = await fetch_html(url)  # Fetch the HTML content of the URL
     article = extract_text(url_content)  # Extract the text content from the HTML
-    keywords = extract_keywords(article)  # Extract keywords from the article text
+    # keywords = extract_keywords(article)  # Extract keywords from the article text
     
     chunk_size = 2800  # Define the maximum size of each article chunk
     # Split the article into chunks based on the defined chunk size
@@ -137,7 +158,7 @@ async def summarize_url(url_data: URLData):
     article = extract_text(url_content)  # Extract the text content from the HTML
     # Generate the summary using the Open Graph description or the generate_summary function
     summary = og_description if og_description else await generate_summary(url_data.url)
-    keywords = extract_keywords(article)  # Extract keywords from the article text
+    # keywords = extract_keywords(article)  # Extract keywords from the article text
     return {"summary": summary}  # Return the summary as a JSON response
 
 # Define a route for the "/summary" endpoint that displays the summary
@@ -156,4 +177,4 @@ async def download(filename: str):
 # Run the FastAPI application using the Uvicorn ASGI server
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+    uvicorn.run(app, host="0.0.0.0", port=8084)

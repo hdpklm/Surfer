@@ -1,6 +1,6 @@
-openapi: 3.0.2
+openapi: 3.0.1
 info:
-  title: FastAPI
+  title: test123
   version: 0.1.0
 paths:
   /:
